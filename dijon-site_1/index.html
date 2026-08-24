@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dijon — la recherche</title>
+<meta name="description" content="A record of one apartment viewing on avenue du Drapeau, Dijon, 29 June 2026 — with maps, context on Burgundy, and how to get there.">
+<meta name="robots" content="noindex, nofollow"><!-- REMOVE this line if you want the site publicly indexed -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+/* ============================================================
+   PALETTE — drawn from Burgundian glazed roof tiles
+   (tuiles vernissées: bottle green, ochre gold, oxblood, black)
+   ============================================================ */
+:root{
+  --vert:    #1C4A3A;   /* dominant — bottle green */
+  --vert-dk: #12312763;
+  --or:      #C08A2E;   /* ochre gold */
+  --brique:  #8A3B2C;   /* oxblood — accent, used sparingly */
+  --ink:     #191C18;   /* near-black, green cast */
+  --chaux:   #F3F0E7;   /* limewash ground */
+  --pierre:  #DBD4C3;   /* Burgundy limestone — rules, fills */
+  --pierre-2:#EAE5D8;
+
+  --measure: 63ch;
+  --gut: clamp(1.25rem, 4vw, 3rem);
+
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+  --body: "Newsreader", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  *,*::before,*::after{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
+
+body{
+  margin:0;
+  background:var(--chaux);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:clamp(1.05rem, .55vw + .95rem, 1.2rem);
+  font-weight:300;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+img{ max-width:100%; display:block; }
+
+a{ color:var(--vert); text-underline-offset:.18em; text-decoration-thickness:1px; }
+a:hover{ color:var(--brique); }
+
+:focus-visible{ outline:3px solid var(--or); outline-offset:3px; }
+
+.wrap{ width:min(100% - calc(var(--gut) * 2), 1180px); margin-inline:auto; }
+.prose{ max-width:var(--measure); }
+.prose p{ margin:0 0 1.1em; }
+
+.skip{
+  position:absolute; left:-9999px; top:0; background:var(--vert); color:var(--chaux);
+  padding:.7rem 1rem; z-index:100; font-family:var(--mono); font-size:.8rem;
+}
+.skip:focus{ left:0; }
+
+/* ============================================================
+   SIGNATURE — the glazed-tile lozenge band
+   ============================================================ */
+.tiles{ display:block; width:100%; height:clamp(58px, 9vw, 104px); }
+.tiles--thin{ height:clamp(20px, 2.6vw, 30px); opacity:.92; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{ background:var(--vert); color:var(--chaux); }
+.hero__inner{ padding-block:clamp(2.4rem, 6vw, 4.6rem) clamp(2.2rem, 5vw, 3.6rem); }
+
+.kicker{
+  font-family:var(--mono); font-size:.72rem; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase;
+  color:var(--or); margin:0 0 1.1rem;
+}
+
+.hero h1{
+  font-family:var(--display); font-weight:800;
+  font-size:clamp(3.4rem, 15vw, 10.5rem);
+  line-height:.82; letter-spacing:-.035em;
+  margin:0; text-transform:uppercase;
+}
+.hero h1 em{
+  display:block; font-style:normal; font-family:var(--body);
+  font-weight:300; text-transform:none; letter-spacing:-.01em;
+  font-size:clamp(1.4rem, 4.6vw, 3rem); line-height:1.1;
+  color:var(--pierre); margin-top:.42em;
+}
+
+.hero__meta{
+  margin-top:clamp(1.8rem, 4vw, 2.8rem);
+  display:flex; flex-wrap:wrap; gap:.55rem 2.2rem;
+  font-family:var(--mono); font-size:.76rem; letter-spacing:.06em;
+  color:var(--pierre);
+  border-top:1px solid rgba(219,212,195,.28); padding-top:1.1rem;
+}
+.hero__meta b{ color:var(--chaux); font-weight:500; }
+
+.hero__thesis{
+  margin-top:clamp(1.6rem,3.5vw,2.4rem); max-width:54ch;
+  font-size:clamp(1.15rem,1.1vw + .95rem,1.45rem); line-height:1.5;
+  color:var(--pierre);
+}
+
+/* ============================================================
+   SECTIONS + the enamel-plaque header
+   (French street plaques: green ground, letterspaced caps, inset rule)
+   ============================================================ */
+.band{ padding-block:clamp(3rem, 7vw, 5.5rem); }
+.band--stone{ background:var(--pierre-2); }
+
+.plaque{
+  display:inline-block; background:var(--vert); color:var(--chaux);
+  padding:.85rem 1.35rem .9rem;
+  box-shadow: inset 0 0 0 1px var(--vert), inset 0 0 0 4px var(--chaux), inset 0 0 0 5px rgba(255,255,255,.28);
+  margin:0 0 clamp(1.5rem,3vw,2.4rem);
+  max-width:100%;
+}
+.band--stone .plaque{ box-shadow: inset 0 0 0 1px var(--vert), inset 0 0 0 4px var(--pierre-2), inset 0 0 0 5px rgba(255,255,255,.3); }
+.plaque__fr{
+  display:block; font-family:var(--display); font-weight:600;
+  font-size:clamp(1.05rem,2vw,1.5rem); letter-spacing:.13em;
+  text-transform:uppercase; line-height:1;
+}
+.plaque__en{
+  display:block; font-family:var(--mono); font-size:.66rem;
+  letter-spacing:.19em; text-transform:uppercase;
+  color:var(--or); margin-top:.5rem;
+}
+
+h2.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.5rem,2.6vw,2.15rem);
+      line-height:1.12; letter-spacing:-.015em; margin:2.6rem 0 .8rem; }
+h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,1.3rem);
+      line-height:1.2; margin:1.9rem 0 .5rem; }
+
+.lede{ font-size:clamp(1.2rem,1.3vw + .95rem,1.55rem); line-height:1.45; font-weight:300; }
+
+/* ============================================================
+   STORY SLOTS — delete the class + comment once you've written yours
+   ============================================================ */
+.slot{
+  border:1px dashed var(--or); border-left:4px solid var(--or);
+  background:rgba(192,138,46,.07);
+  padding:1.1rem 1.3rem; margin:1.4rem 0; max-width:var(--measure);
+}
+.slot::before{
+  content:"À compléter — your words here";
+  display:block; font-family:var(--mono); font-size:.63rem;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--brique);
+  margin-bottom:.55rem;
+}
+.slot p{ margin:0 0 .7em; font-style:italic; color:#4A4E46; }
+.slot p:last-child{ margin-bottom:0; }
+
+/* ============================================================
+   FACT LIST
+   ============================================================ */
+.facts{ list-style:none; margin:1.6rem 0 0; padding:0;
+        display:grid; gap:1px; background:var(--pierre);
+        border:1px solid var(--pierre); }
+.band--stone .facts{ background:#CFC7B2; border-color:#CFC7B2; }
+.facts li{ background:var(--chaux); padding:1rem 1.15rem; }
+.band--stone .facts li{ background:var(--pierre-2); }
+.facts dt, .facts .t{
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--vert); display:block; margin-bottom:.35rem;
+}
+.facts .d{ font-size:.98rem; line-height:1.45; }
+@media (min-width:640px){ .facts{ grid-template-columns:repeat(2,1fr); } }
+@media (min-width:980px){ .facts{ grid-template-columns:repeat(4,1fr); } }
+
+/* ============================================================
+   PHOTO TIMELINE
+   ============================================================ */
+.clockbar{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem 1.6rem;
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--vert);
+  border-block:1px solid var(--pierre); padding-block:.9rem; margin-bottom:2rem;
+}
+.clockbar b{ color:var(--brique); font-weight:500; }
+
+.grid{ display:grid; gap:clamp(1rem,2.2vw,1.7rem); grid-template-columns:1fr; align-items:start; }
+@media (min-width:600px){ .grid{ grid-template-columns:repeat(2,1fr); } }
+@media (min-width:1000px){ .grid{ grid-template-columns:repeat(3,1fr); } }
+
+.shot{ margin:0; }
+.shot__btn{
+  display:block; width:100%; padding:0; border:0; background:var(--vert);
+  cursor:zoom-in; position:relative; overflow:hidden; line-height:0;
+  aspect-ratio:1/1;   /* contact-sheet square — full frame opens in the viewer */
+}
+.shot--gap .shot__btn{ aspect-ratio:16/7; }
+.shot__btn img{
+  width:100%; height:100%; object-fit:cover; object-position:center;
+  transition:transform .5s cubic-bezier(.2,.7,.3,1);
+}
+.shot__btn:hover img{ transform:scale(1.028); }
+.shot__stamp{
+  position:absolute; left:0; bottom:0; background:var(--vert); color:var(--chaux);
+  font-family:var(--mono); font-size:.68rem; letter-spacing:.08em;
+  padding:.32rem .55rem; line-height:1.2;
+}
+.shot figcaption{
+  font-family:var(--mono); font-size:.72rem; line-height:1.45;
+  letter-spacing:.02em; color:#4A4E46; padding-top:.55rem;
+  min-height:3.6em;
+}
+.shot--gap figcaption{ min-height:0; }
+.shot--gap{ grid-column:1 / -1; }
+.gapnote{
+  display:flex; align-items:center; gap:1rem; margin:.6rem 0 -.2rem;
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--brique);
+}
+.gapnote::before,.gapnote::after{ content:""; flex:1; height:1px; background:var(--pierre); }
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+.lb[hidden]{ display:none; }
+.lb{
+  position:fixed; inset:0; z-index:60; background:rgba(18,21,17,.94);
+  display:flex; flex-direction:column; padding:clamp(.6rem,2vw,1.4rem);
+}
+.lb__stage{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+.lb__stage img{ max-width:100%; max-height:100%; object-fit:contain; }
+.lb__bar{
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding-top:.8rem; color:var(--pierre);
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.06em;
+}
+.lb__nav{ display:flex; gap:.5rem; }
+.lb button{
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.1em; text-transform:uppercase;
+  background:transparent; color:var(--chaux); border:1px solid rgba(219,212,195,.42);
+  padding:.5rem .85rem; cursor:pointer;
+}
+.lb button:hover{ background:var(--vert); border-color:var(--vert); }
+
+/* ============================================================
+   MAP
+   ============================================================ */
+#map{ height:clamp(400px, 62vh, 620px); background:var(--pierre); border:1px solid var(--vert); }
+#map.is-fallback{ height:auto; }
+.leaflet-container{ font-family:var(--mono); font-size:.78rem; }
+.leaflet-popup-content{ font-family:var(--mono); font-size:.76rem; line-height:1.5; margin:.7rem .9rem; }
+.leaflet-popup-content strong{ font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--vert); }
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{ border-radius:0; }
+.pin{ border-radius:50%; border:2px solid var(--chaux); box-shadow:0 1px 4px rgba(0,0,0,.4); }
+/* shown only if Leaflet / OSM can't be reached (e.g. behind a filtering proxy) */
+.mapfall{ padding:clamp(1.2rem,3vw,2rem); background:var(--pierre-2); height:100%; overflow:auto; }
+.mapfall p{ font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; line-height:1.6;
+            color:var(--brique); margin:0 0 1.2rem; max-width:66ch; }
+.mapfall ul{ list-style:none; margin:0; padding:0; display:grid; gap:.55rem; }
+@media (min-width:720px){ .mapfall ul{ grid-template-columns:repeat(2,1fr); } }
+.mapfall li{ display:flex; gap:.7rem; align-items:baseline;
+             border-bottom:1px solid #CFC7B2; padding-bottom:.55rem; }
+.mapfall i{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; transform:translateY(1px); }
+.mapfall b{ font-family:var(--display); font-weight:600; font-size:.95rem; display:block; }
+.mapfall span{ font-family:var(--mono); font-size:.7rem; color:#4A4E46; line-height:1.5; }
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:.5rem 1.4rem; margin-top:1rem;
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:#4A4E46;
+}
+.legend span{ display:inline-flex; align-items:center; gap:.45rem; }
+.legend i{ width:11px; height:11px; border-radius:50%; display:inline-block; }
+
+/* ============================================================
+   TRAVEL TABLE
+   ============================================================ */
+.routes{ width:100%; border-collapse:collapse; margin-top:1.5rem; font-size:.98rem; }
+.routes caption{ text-align:left; font-family:var(--mono); font-size:.68rem; letter-spacing:.16em;
+                 text-transform:uppercase; color:var(--vert); padding-bottom:.7rem; }
+.routes th,.routes td{ text-align:left; padding:.8rem .9rem; border-bottom:1px solid var(--pierre); vertical-align:top; }
+.routes thead th{
+  font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase;
+  font-weight:500; color:var(--chaux); background:var(--vert); border-bottom:0;
+}
+.routes tbody th{ font-family:var(--display); font-weight:600; font-size:1rem; white-space:nowrap; }
+.routes td.num{ font-family:var(--mono); font-size:.85rem; white-space:nowrap; }
+.tablescroll{ overflow-x:auto; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.colophon{ background:var(--ink); color:var(--pierre); padding-block:clamp(2.4rem,5vw,3.6rem); }
+.colophon a{ color:var(--or); }
+.colophon .prose{ font-size:.94rem; }
+.colophon h2{ font-family:var(--display); font-weight:600; font-size:1.15rem;
+              letter-spacing:.02em; margin:0 0 .9rem; color:var(--chaux); }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ============================================================
+     SVG DEFS — the glazed-tile lozenge pattern (the signature motif)
+     Burgundian roofs (Palais des Ducs, Hospices de Beaune) are laid in
+     diamonds of green, ochre, oxblood and black glazed tile.
+     ============================================================ -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <pattern id="lz-or" width="48" height="24" patternUnits="userSpaceOnUse">
+      <rect width="48" height="24" fill="#1C4A3A"/>
+      <path d="M24 0 48 12 24 24 0 12Z" fill="#C08A2E"/>
+    </pattern>
+    <pattern id="lz-brique" width="48" height="24" patternUnits="userSpaceOnUse">
+      <rect width="48" height="24" fill="#1C4A3A"/>
+      <path d="M24 0 48 12 24 24 0 12Z" fill="#8A3B2C"/>
+    </pattern>
+    <pattern id="lz-chaux" width="48" height="24" patternUnits="userSpaceOnUse">
+      <rect width="48" height="24" fill="#123127"/>
+      <path d="M24 0 48 12 24 24 0 12Z" fill="#DBD4C3"/>
+    </pattern>
+    <pattern id="lz-ink" width="48" height="24" patternUnits="userSpaceOnUse">
+      <rect width="48" height="24" fill="#C08A2E"/>
+      <path d="M24 0 48 12 24 24 0 12Z" fill="#191C18"/>
+    </pattern>
+  </defs>
+</svg>
+
+<!-- roof band -->
+<svg class="tiles" viewBox="0 0 480 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect x="0" y="0"  width="480" height="24" fill="url(#lz-or)"/>
+  <rect x="0" y="24" width="480" height="24" fill="url(#lz-chaux)"/>
+  <rect x="0" y="48" width="480" height="24" fill="url(#lz-brique)"/>
+  <rect x="0" y="72" width="480" height="24" fill="url(#lz-ink)"/>
+</svg>
+
+<header class="hero">
+  <div class="wrap hero__inner">
+    <p class="kicker">Côte-d’Or · Bourgogne-Franche-Comté</p>
+    <h1>Dijon<em>La recherche — looking for a place to live</em></h1>
+
+    <p class="hero__thesis">
+      A week in Dijon, two cameras, and the same apartment visited twice. Thirty-six
+      photographs: the flat on avenue du Drapeau with someone else’s books still on the
+      stairs, and the city we were weighing it against.
+    </p>
+
+    <div class="hero__meta">
+      <span>Dates <b>25 June – 2 July 2026</b></span>
+      <span>Frames <b>36</b></span>
+      <span>Visits <b>Two</b></span>
+      <span>Quarter <b>Avenue du Drapeau</b></span>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============================================================
+     LE QUARTIER
+     ============================================================ -->
+<section class="band">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Le quartier</span>
+      <span class="plaque__en">Avenue du Drapeau — where it sits</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        Avenue du Drapeau runs north out of place de la République, and for most of the
+        twentieth century a good stretch of it was army. The Junot and Heudelet barracks
+        sat along here until the city took them back.
+      </p>
+      <p>
+        When Dijon built its tram in 2012, the T2 line was routed straight up this
+        corridor — and the disused military ground either side of it became the obvious
+        place to put new housing. Whole blocks of flats, shops and public buildings went
+        up on the old parade grounds, deliberately clustered around the tram stops. The
+        building in these photographs is one of them: red brick and pale render, shops on
+        the ground floor, a rooftop terrace at the top.
+      </p>
+      <p>
+        It’s an easy piece of city to live in. République — where the T1 and T2 lines
+        cross, and where you change for anywhere — is a few minutes’ walk south. The
+        square is the old Saint-Nicolas parade ground, and the Sadi Carnot monument at
+        the centre of it got its ring of water jets in 2012, part of the same tram works
+        that remade the avenue. There’s an Intermarché a short way up, a bigger one down
+        at the République end, and the medieval centre is about twenty-five minutes on
+        foot or three stops on the tram.
+      </p>
+    </div>
+
+    <ul class="facts">
+      <li><span class="t">Tram</span><span class="d">T2 (Valmy ↔ Chenôve) runs the length of the avenue; T1 and T2 meet at République</span></li>
+      <li><span class="t">Fare</span><span class="d">≈ €1.60 single, valid one hour with transfers; ≈ €4.50 for 24 hours. Contactless card works at the validator</span></li>
+      <li><span class="t">To the centre</span><span class="d">~1.7 km south to the Palais des Ducs — walkable, flat</span></li>
+      <li><span class="t">To the station</span><span class="d">Gare Dijon-Ville, ~2 km southwest; Porte-Neuve (regional) is closer</span></li>
+    </ul>
+
+    <div class="slot">
+      <p>Why this quarter? What made you look here rather than the old centre, or one
+      of the villages down the Côte — the tram, the price per square metre, the schools,
+      someone’s advice?</p>
+      <p>And how did this particular flat come to you — an agency, a notaire, a
+      window card, a friend?</p>
+    </div>
+  </div>
+</section>
+
+<svg class="tiles tiles--thin" viewBox="0 0 480 24" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect width="480" height="24" fill="url(#lz-or)"/>
+</svg>
+
+<!-- ============================================================
+     LA VISITE — the photo timeline
+     ============================================================ -->
+<section class="band band--stone">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Les visites</span>
+      <span class="plaque__en">Twice through the same apartment</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        The first time through, the camera’s clock tells a story of its own: twenty-one
+        frames in two minutes twenty-five seconds. Top floor first, down the stairs,
+        through the bedrooms and bathrooms, out to the terrace, back in through the
+        sitting room to the front door. Then nothing for half an hour, and one last
+        photograph from the pavement.
+      </p>
+      <p>
+        The second time, a day later, was slower and mostly spent looking out — down the
+        avenue, across the rooftops, and once more at the kitchen.
+      </p>
+    </div>
+
+    <div class="clockbar">
+      <span>First visit <b>29 June, 12:00</b></span>
+      <span>Interior sequence <b>2 min 25 s</b></span>
+      <span>Then a gap of <b>29 min</b></span>
+      <span>Second visit <b>30 June, 15:27</b></span>
+      <span>Click any frame for the whole photograph</span>
+    </div>
+
+    <div class="grid" id="gallery"><!-- built by script --></div>
+
+    <div class="slot" style="margin-top:2.4rem">
+      <p>What happened in those twenty-nine minutes? That’s the part the photographs
+      don’t have — the sitting down, the questions, the numbers, the owners talking.</p>
+      <p>And what took you back the next day: what you wanted to check, who came with
+      you, what you decided.</p>
+    </div>
+  </div>
+</section>
+
+<svg class="tiles tiles--thin" viewBox="0 0 480 24" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect width="480" height="24" fill="url(#lz-chaux)"/>
+</svg>
+
+<!-- ============================================================
+     LA VILLE — the days either side of the viewings
+     ============================================================ -->
+<section class="band">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">La ville</span>
+      <span class="plaque__en">The days either side</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        You don’t choose a flat, you choose a city and then a flat inside it. Between the
+        viewings there was the rest of Dijon — the square at the end of the avenue, a
+        beer in the old town, the owl, and an afternoon in the Palais des Ducs.
+      </p>
+    </div>
+
+    <div class="grid" id="cityGallery"><!-- built by script --></div>
+
+    <div class="slot" style="margin-top:2.4rem">
+      <p>Your own Dijon: the café you kept going back to, the bakery, the thing nobody
+      warned you about, the walk that made the decision feel real.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     LE PLAN — map
+     ============================================================ -->
+<section class="band">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Le plan</span>
+      <span class="plaque__en">The map</span>
+    </div>
+
+    <div class="prose" style="margin-bottom:1.6rem">
+      <p>The flat, the tram, the two stations, and the places you’d actually end up
+      going.</p>
+    </div>
+
+    <div id="map" role="application" aria-label="Map of Dijon showing the apartment, tram stops, stations and landmarks"></div>
+
+    <div class="legend">
+      <span><i style="background:#8A3B2C"></i> The building</span>
+      <span><i style="background:#1C4A3A"></i> Transport</span>
+      <span><i style="background:#C08A2E"></i> City &amp; green space</span>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;color:#4A4E46;margin-top:1rem;max-width:70ch">
+      The building marker is placed to the block, not the door. Every photograph on this
+      page has had its GPS and camera metadata stripped.
+    </p>
+  </div>
+</section>
+
+<svg class="tiles tiles--thin" viewBox="0 0 480 24" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect width="480" height="24" fill="url(#lz-brique)"/>
+</svg>
+
+<!-- ============================================================
+     DIJON & LA BOURGOGNE
+     ============================================================ -->
+<section class="band band--stone">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Dijon &amp; la Bourgogne</span>
+      <span class="plaque__en">The city and the region</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        Dijon is the capital of Bourgogne-Franche-Comté, a city of roughly 160,000 in a
+        metropolitan area of about 250,000 — big enough to have everything, small enough
+        to cross on foot.
+      </p>
+
+      <h2 class="h">A capital before it was a provincial city</h2>
+      <p>
+        It began as Divio, a Roman garrison on the road from Lyon to Mainz. In 1015 Duke
+        Robert made it the seat of the Duchy of Burgundy, and in the fourteenth and
+        fifteenth centuries the Valois dukes — Philip the Bold through Charles the Bold —
+        ran a state that stretched from the Alps to the North Sea and was, for a while,
+        richer than the French crown. They spent that money here. The Palais des Ducs et
+        des États is still the centre of town: the city council sits in the middle of it,
+        the Musée des Beaux-Arts occupies the east wing, and the tombs of the dukes are in
+        what used to be the guards’ room.
+      </p>
+      <p>
+        The protected historic quarter covers about 97 hectares and is almost entirely
+        pedestrianised — half-timbered houses, Romanesque and Gothic churches, seventeenth-
+        and eighteenth-century hôtels particuliers. Most of the municipal museums are free.
+      </p>
+
+      <h2 class="h">Two UNESCO listings, and they’re connected</h2>
+      <p>
+        In 2015 UNESCO inscribed <em>Les Climats du vignoble de Bourgogne</em> — the
+        1,247 precisely-drawn vineyard parcels running south from Dijon along the Côte de
+        Nuits and the Côte de Beaune. The listing deliberately includes the historic
+        centre of Dijon itself, because this is where the legal and political machinery
+        that defined those parcels lived. Beaune was the trade; Dijon was the rule-making.
+      </p>
+      <p>
+        Separately, the <em>gastronomic meal of the French</em> was added to UNESCO’s
+        intangible heritage list in 2010, and Dijon was chosen to host the wine-facing
+        part of the national response. The Cité Internationale de la Gastronomie et du
+        Vin opened in 2022 on the site of the general hospital that ran from 1204 to 2015
+        — a €250m conversion with exhibitions, a Ferrandi cooking school, a very large
+        cellar, and a new residential quarter around it.
+      </p>
+
+      <h2 class="h">What it tastes like</h2>
+      <p>
+        Mustard, obviously — the Dijon method grinds the seed with verjuice or white wine
+        rather than vinegar. Beyond that: pain d’épices, crème de cassis (and therefore
+        kir), Époisses, jambon persillé, œufs en meurette, boeuf bourguignon. Les Halles,
+        the market hall built to a Gustave Eiffel design, trades on Tuesday, Friday and
+        Saturday mornings.
+      </p>
+
+      <h3 class="h">Worth knowing before you plan a day</h3>
+      <p>
+        A lot of provincial France closes on Sunday and Monday, and Dijon is no exception —
+        check before you build an afternoon around a particular shop or restaurant. The
+        Musée des Beaux-Arts is closed Tuesdays. And the Parcours de la Chouette, the
+        owl trail, is a genuinely good way to get your bearings on a first walk: 22 brass
+        plaques set into the pavement, following the route between the monuments. The owl
+        itself is carved into a buttress of Notre-Dame; you touch it with your left hand.
+      </p>
+    </div>
+
+    <ul class="facts" style="margin-top:2.2rem">
+      <li><span class="t">Region</span><span class="d">Bourgogne-Franche-Comté, département of Côte-d’Or (21)</span></li>
+      <li><span class="t">Population</span><span class="d">~160,000 city · ~250,000 metropolitan</span></li>
+      <li><span class="t">Wine country</span><span class="d">Marsannay, Gevrey-Chambertin, Vosne-Romanée and Nuits-Saint-Georges all lie within ~25 km south</span></li>
+      <li><span class="t">Green space</span><span class="d">Parc de la Colombière in the south, Lac Kir to the west, Jardin de l’Arquebuse by the station</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     Y ALLER
+     ============================================================ -->
+<section class="band">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Y aller</span>
+      <span class="plaque__en">Getting there</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        Dijon-Ville sits on the old Paris–Lyon–Marseille main line, 314 km from Paris-Lyon,
+        and it has been a junction since 1849. Eight million passengers a year pass
+        through it. Coming from the United States, the sane route is a flight into Paris
+        and the TGV out of Gare de Lyon.
+      </p>
+    </div>
+
+    <div class="tablescroll">
+      <table class="routes">
+        <caption>Approximate journey times — check current timetables before booking</caption>
+        <thead>
+          <tr><th scope="col">From</th><th scope="col">How</th><th scope="col">Time</th><th scope="col">Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Paris</th>
+            <td>TGV inOui / TGV Lyria from Gare de Lyon</td>
+            <td class="num">1 h 36 – 2 h 30</td>
+            <td>Direct, roughly 15–18 departures a day. Book ahead; walk-up fares are much higher.</td>
+          </tr>
+          <tr>
+            <th scope="row">Paris CDG</th>
+            <td>TGV, usually with a change</td>
+            <td class="num">from ~3 h 45</td>
+            <td>No reliable direct service. Many people find it simpler to transfer into Gare de Lyon.</td>
+          </tr>
+          <tr>
+            <th scope="row">Paris</th>
+            <td>FlixBus from Quai de Bercy</td>
+            <td class="num">~3 h 55</td>
+            <td>The cheap option, twice daily.</td>
+          </tr>
+          <tr>
+            <th scope="row">Paris</th>
+            <td>Car, A6 / A38</td>
+            <td class="num">~3 h · 311 km</td>
+            <td>Tolls and fuel run well above a booked train fare.</td>
+          </tr>
+          <tr>
+            <th scope="row">Lyon</th>
+            <td>TGV / TER</td>
+            <td class="num">~1 h 40</td>
+            <td>Frequent. Lyon-Saint-Exupéry is the nearest large airport after Paris.</td>
+          </tr>
+          <tr>
+            <th scope="row">Zurich &amp; Basel</th>
+            <td>TGV Lyria</td>
+            <td class="num">~2 h 30 (Zurich)</td>
+            <td>Dijon is on the Paris–Switzerland Lyria route.</td>
+          </tr>
+          <tr>
+            <th scope="row">Luxembourg / Metz</th>
+            <td>Car, A31</td>
+            <td class="num">under 3 h</td>
+            <td></td>
+          </tr>
+          <tr>
+            <th scope="row">Lille &amp; Belgium</th>
+            <td>TGV ~3 h · car A26 under 5 h</td>
+            <td class="num">~3 h</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="h">Once you’re there</h3>
+    <div class="prose">
+      <p>
+        The Divia network is two tram lines and a set of bus routes, and it will get you
+        anywhere you need. T1 runs east–west from the station through the centre to
+        Quetigny; T2 runs north–south from Valmy down to Chenôve, up avenue du Drapeau
+        and through République. Tap a contactless card on the validator every time you
+        board, including transfers. A single is about €1.60 and lasts an hour; a 24-hour
+        pass is about €4.50 and a week is around €15. There’s bike share, and a free
+        shuttle around the historic centre.
+      </p>
+      <p>
+        From Gare Dijon-Ville the T1 puts you in the centre in two stops, but it’s a flat
+        ten-minute walk and the walk is nicer.
+      </p>
+    </div>
+
+    <div class="slot">
+      <p>Your route, and what you’d tell someone doing it next: which flight, which
+      train, how much luggage was too much luggage.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<svg class="tiles" viewBox="0 0 480 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect x="0" y="0"  width="480" height="24" fill="url(#lz-ink)"/>
+  <rect x="0" y="24" width="480" height="24" fill="url(#lz-brique)"/>
+  <rect x="0" y="48" width="480" height="24" fill="url(#lz-chaux)"/>
+  <rect x="0" y="72" width="480" height="24" fill="url(#lz-or)"/>
+</svg>
+
+<footer class="colophon">
+  <div class="wrap prose">
+    <h2>Colophon</h2>
+    <p>
+      Photographs taken 29 June 2026 in Dijon, Côte-d’Or. Times shown are the camera’s own,
+      read from the files before the metadata was removed. Locations, distances and fares
+      were checked against public sources; fares in particular change, so treat them as
+      indicative.
+    </p>
+    <p>
+      The diamond bands are <em>tuiles vernissées</em> — the glazed polychrome roof tiles
+      of Burgundy, the ones on the Palais des Ducs and the Hospices de Beaune. Section
+      headers borrow the enamel street plaque. Type is Bricolage Grotesque, Newsreader and
+      IBM Plex Mono. Map tiles ©
+      <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a>
+      contributors, drawn with <a href="https://leafletjs.com" rel="noopener">Leaflet</a>.
+    </p>
+  </div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photograph viewer">
+  <div class="lb__stage"><img id="lbImg" alt=""></div>
+  <div class="lb__bar">
+    <span id="lbCap"></span>
+    <span class="lb__nav">
+      <button type="button" id="lbPrev" aria-label="Previous photograph">← Prev</button>
+      <button type="button" id="lbNext" aria-label="Next photograph">Next →</button>
+      <button type="button" id="lbClose" aria-label="Close viewer">Close</button>
+    </span>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============================================================
+   THE PHOTOGRAPHS
+   Times are the camera's original timestamps.
+   `people: true` = an identifiable face is in frame. Delete those
+   entries if you'd rather not publish them.
+   ============================================================ */
+const SHOTS = [
+  { id:'img_7545', t:'12:00:48', cap:'An empty room on the upper floor. New floor, old chandelier.' },
+  { id:'img_7546', t:'12:00:55', cap:'The same room, looking out. Radiator under the window, blinds on the block opposite.' },
+  { id:'img_7547', t:'12:01:00', cap:'Attic bedroom under the slope, lit by a Velux. Iron bedstead, walnut commode.' },
+  { id:'img_7548', t:'12:01:09', cap:'Utility bathroom — washer, dryer, basin, dark tile.' },
+  { id:'img_7549', t:'12:01:15', cap:'Corner shower, mosaic surround.' },
+  { id:'img_7550', t:'12:01:17', cap:'The other side of the same room. Shelving built into the wall.' },
+  { id:'img_7551', t:'12:01:23', cap:'At the top of the stairs.', people:true },
+  { id:'img_7552', t:'12:01:30', cap:'Bookshelves following the stairwell up under the eaves.' },
+  { id:'img_7553', t:'12:01:34', cap:'The turn of the staircase, going down.' },
+  { id:'img_7554', t:'12:02:00', cap:'Kitchen. Fitted units, boiler on the wall, table laid with a Provençal cloth.' },
+  { id:'img_7555', t:'12:02:06', cap:'Bedroom with a green dado and a brass bed.' },
+  { id:'img_7556', t:'12:02:11', cap:'The same room — armoire, desk in the window, shutters half drawn.' },
+  { id:'img_7557', t:'12:02:16', cap:'Main bathroom. Double basin, bath, brown tile throughout.' },
+  { id:'img_7558', t:'12:02:22', cap:'Shower cabin and heated towel rail.' },
+  { id:'img_7559', t:'12:02:28', cap:'Hallway. Framed prints, a door standing open.' },
+  { id:'img_7560', t:'12:02:39', cap:'The terrace. Pots, a folding chair, the neighbouring block over the parapet.' },
+  { id:'img_7561', t:'12:02:47', cap:'The far corner of the terrace, looking out across the rooftops.' },
+  { id:'img_7562', t:'12:02:56', cap:'Sitting room — vitrine, writing desk, the owners at home.', people:true },
+  { id:'img_7563', t:'12:03:01', cap:'Looking down the hall to the front door.' },
+  { id:'img_7564', t:'12:03:06', cap:'The sitting room from the other end, doors open to the terrace.', people:true },
+  { id:'img_7565', t:'12:03:13', cap:'The hall again. Last frame inside.' },
+  { id:'img_7566', t:'12:32:16', cap:'Outside, half an hour later. The building from avenue du Drapeau — brick, render, shops below.', gap:'29 minutes later' },
+
+  /* ---- second visit, 30 June ---- */
+  { id:'img_7575', t:'15:27:24', cap:'Back the next day. From the terrace, looking north up avenue du Drapeau.', gap:'The next day — 30 June' },
+  { id:'img_7576', t:'15:27:28', cap:'The same view swung south. Tram track down the middle, plane trees either side.' },
+  { id:'img_7577', t:'15:27:40', cap:'Across the rooftops to the old barracks range — arcaded, dormered, now flats.' },
+  { id:'img_5721', t:'15:30:33', cap:'The avenue from the terrace corner. The second camera.' },
+  { id:'img_7579', t:'15:33:27', cap:'The kitchen, second look. Green walls, grey tile, a window onto the trees.' },
+  { id:'img_5722', t:'15:50:20', cap:'Under the terrace canopy, out over the rooftops one more time.' }
+];
+
+/* ============================================================
+   THE CITY — the days either side of the viewings
+   ============================================================ */
+const CITY = [
+  { id:'img_5709', d:'25 June', t:'11:57', cap:'Place de la République, four days before the first viewing. The Sadi Carnot monument, and the water jets added around it when the tram came through.', people:true },
+  { id:'img_5723', d:'30 June', t:'20:43', cap:'Dinner in the old town the evening after the second visit.', people:true },
+  { id:'img_5728', d:'1 July',  t:'11:20', cap:'The owl on rue de la Chouette, worn smooth on the buttress of Notre-Dame. Left hand, and make a wish.', people:true },
+  { id:'img_5757', d:'2 July',  t:'11:29', cap:'Notre-Dame’s tower from below — tiers of false gargoyles, and the Jacquemart clock on top.' },
+  { id:'img_5758', d:'2 July',  t:'15:36', cap:'The Salle des Gardes at the Musée des Beaux-Arts: the tombs of the Dukes of Burgundy, alabaster mourners in the arcade below.' },
+  { id:'img_5759', d:'2 July',  t:'15:59', cap:'The statue gallery, light coming in off the courtyard.' },
+  { id:'img_5760', d:'2 July',  t:'15:59', cap:'The painted ceiling above it.' },
+  { id:'img_5761', d:'2 July',  t:'15:59', cap:'Through to the next room. Free entry, like all the municipal museums here.' }
+];
+
+/* ---- build both galleries; lightbox indexes across the combined set ---- */
+const ALL = [];
+
+function build(list, mount, isCity){
+  const el = document.getElementById(mount);
+  list.forEach(s => {
+    const i = ALL.push(s) - 1;
+    if (s.gap) {
+      const note = document.createElement('p');
+      note.className = 'gapnote shot--gap';
+      note.textContent = s.gap;
+      el.appendChild(note);
+    }
+    const stamp = isCity ? s.d + ' · ' + s.t : s.t;
+    const fig = document.createElement('figure');
+    fig.className = 'shot' + (s.gap ? ' shot--gap' : '');
+    fig.innerHTML =
+      '<button type="button" class="shot__btn" data-i="' + i + '" aria-label="Enlarge photograph — ' + stamp + '">' +
+        '<img src="images/thumb/' + s.id + '.jpg" alt="' + s.cap.replace(/"/g,'&quot;') + '" loading="lazy" decoding="async">' +
+        '<span class="shot__stamp">' + stamp + '</span>' +
+      '</button>' +
+      '<figcaption>' + s.cap + '</figcaption>';
+    el.appendChild(fig);
+  });
+}
+
+build(SHOTS, 'gallery', false);
+build(CITY,  'cityGallery', true);
+
+/* ---- lightbox ---- */
+const lb = document.getElementById('lb'),
+      lbImg = document.getElementById('lbImg'),
+      lbCap = document.getElementById('lbCap');
+let cur = 0, lastFocus = null;
+
+function show(i){
+  cur = (i + ALL.length) % ALL.length;
+  const s = ALL[cur];
+  lbImg.src = 'images/full/' + s.id + '.jpg';
+  lbImg.alt = s.cap;
+  lbCap.textContent = (s.d ? s.d + '  ·  ' : '') + s.t + '  ·  ' + (cur + 1) + ' / ' + ALL.length;
+}
+function open(i){
+  lastFocus = document.activeElement;
+  show(i);
+  lb.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('lbClose').focus();
+}
+function close(){
+  lb.hidden = true;
+  lbImg.src = '';
+  document.body.style.overflow = '';
+  if (lastFocus) lastFocus.focus();
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.shot__btn');
+  if (btn) open(+btn.dataset.i);
+});
+document.getElementById('lbPrev').addEventListener('click', () => show(cur - 1));
+document.getElementById('lbNext').addEventListener('click', () => show(cur + 1));
+document.getElementById('lbClose').addEventListener('click', close);
+lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lb__stage')) close(); });
+document.addEventListener('keydown', e => {
+  if (lb.hidden) return;
+  if (e.key === 'Escape') close();
+  if (e.key === 'ArrowLeft') show(cur - 1);
+  if (e.key === 'ArrowRight') show(cur + 1);
+});
+
+/* ============================================================
+   MAP
+   Coordinates are from the photo metadata (the building) and from
+   public records. Add your own pins to PLACES below.
+   ============================================================ */
+const PLACES = [
+  { n:'The building',                   s:'Avenue du Drapeau — the flat in these photographs', ll:[47.3373, 5.0446],   k:'home' },
+  { n:'République',                     s:'Tram T1 + T2 interchange · ~3 min walk',            ll:[47.32691, 5.04417], k:'tram' },
+  { n:'Gare Dijon-Ville',               s:'Main station · TGV to Paris, Lyon, Zurich',          ll:[47.32337, 5.02721], k:'tram' },
+  { n:'Gare Dijon-Porte-Neuve',         s:'Regional TER station · 6 min from Dijon-Ville',      ll:[47.32309, 5.05516], k:'tram' },
+  { n:'Intermarché',                    s:'78 bis avenue du Drapeau · the near one',            ll:[47.34033, 5.04502], k:'tram' },
+  { n:'Intermarché Super',              s:'2 avenue du Drapeau · the bigger one',               ll:[47.33017, 5.04402], k:'tram' },
+  { n:'Palais des Ducs',                s:'Ducal palace + Musée des Beaux-Arts · closed Tue',   ll:[47.32181, 5.04158], k:'city' },
+  { n:'Parc de la Colombière',          s:'The big park, south of the centre',                  ll:[47.30001, 5.04681], k:'city' },
+  { n:'Lac Kir',                        s:'Lake and beach, west of town',                       ll:[47.32737, 4.99893], k:'city' },
+  { n:'La Toison d’Or',                 s:'Shopping centre, north · T2 terminus end',           ll:[47.35725, 5.05163], k:'city' }
+];
+const COLOR = { home:'#8A3B2C', tram:'#1C4A3A', city:'#C08A2E' };
+const mapEl = document.getElementById('map');
+
+/* If Leaflet loaded, draw the map. If the CDN is blocked — a filtering proxy,
+   no network — fall back to a plain list that needs nothing external. */
+if (window.L) {
+  const map = L.map('map', { scrollWheelZoom:false }).setView([47.3320, 5.0400], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+
+  const bounds = [];
+  PLACES.forEach(p => {
+    L.circleMarker(p.ll, {
+      radius: p.k === 'home' ? 11 : 7,
+      color: '#F3F0E7', weight: 2,
+      fillColor: COLOR[p.k], fillOpacity: 1,
+      className: 'pin'
+    }).addTo(map).bindPopup('<strong>' + p.n + '</strong><br>' + p.s);
+    bounds.push(p.ll);
+  });
+  map.fitBounds(bounds, { padding: [45, 45] });
+  map.once('focus', () => map.scrollWheelZoom.enable());
+
+} else {
+  mapEl.removeAttribute('role');
+  mapEl.classList.add('is-fallback');
+  mapEl.innerHTML =
+    '<div class="mapfall">' +
+      '<p>The interactive map needs Leaflet and OpenStreetMap, and neither could be ' +
+      'reached from this network. Here are the same places — each name opens in ' +
+      'OpenStreetMap.</p><ul>' +
+      PLACES.map(p =>
+        '<li><i style="background:' + COLOR[p.k] + '"></i><span>' +
+          '<b><a href="https://www.openstreetmap.org/?mlat=' + p.ll[0] + '&mlon=' + p.ll[1] +
+          '#map=17/' + p.ll[0] + '/' + p.ll[1] + '" rel="noopener">' + p.n + '</a></b>' +
+          p.s + '</span></li>'
+      ).join('') +
+    '</ul></div>';
+}
+</script>
+</body>
+</html>
