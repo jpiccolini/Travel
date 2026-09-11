@@ -211,6 +211,13 @@ h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,
   transition:transform .5s cubic-bezier(.2,.7,.3,1);
 }
 .shot__btn:hover img{ transform:scale(1.028); }
+.shot__btn--video::after{
+  content:""; position:absolute; inset:0; margin:auto; width:0; height:0;
+  border-style:solid; border-width:.9rem 0 .9rem 1.4rem;
+  border-color:transparent transparent transparent var(--chaux);
+  filter:drop-shadow(0 0 .4rem rgba(0,0,0,.55));
+  pointer-events:none;
+}
 .shot__stamp{
   position:absolute; left:0; bottom:0; background:var(--vert); color:var(--chaux);
   font-family:var(--mono); font-size:.68rem; letter-spacing:.08em;
@@ -239,7 +246,7 @@ h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,
   display:flex; flex-direction:column; padding:clamp(.6rem,2vw,1.4rem);
 }
 .lb__stage{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
-.lb__stage img{ max-width:100%; max-height:100%; object-fit:contain; }
+.lb__stage img, .lb__stage video{ max-width:100%; max-height:100%; object-fit:contain; }
 .lb__bar{
   display:flex; align-items:center; justify-content:space-between; gap:1rem;
   padding-top:.8rem; color:var(--pierre);
@@ -724,7 +731,10 @@ h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,
 
 <!-- LIGHTBOX -->
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photograph viewer">
-  <div class="lb__stage"><img id="lbImg" alt=""></div>
+  <div class="lb__stage">
+    <img id="lbImg" alt="">
+    <video id="lbVideo" controls playsinline hidden></video>
+  </div>
   <div class="lb__bar">
     <span id="lbCap"></span>
     <span class="lb__nav">
@@ -742,6 +752,13 @@ h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,
    Times are the camera's original timestamps.
    `people: true` = an identifiable face is in frame. Delete those
    entries if you'd rather not publish them.
+
+   To add a VIDEO instead of a photo: add `video: true` to the entry.
+   The lightbox will then look for:
+     - images/thumb/{id}.jpg  — a poster frame, same as photos (required —
+       this is what shows in the grid before it's clicked)
+     - images/video/{id}.mp4  — the actual video file (new folder)
+   No images/full/{id}.jpg is needed for a video entry.
    ============================================================ */
 const SHOTS = [
   { id:'img_7545', t:'12:00:48', cap:'An empty room on the upper floor. New floor, old chandelier.' },
@@ -788,6 +805,9 @@ const CITY = [
   { id:'img_5759', d:'2 July',  t:'15:59', cap:'The statue gallery, light coming in off the courtyard.' },
   { id:'img_5760', d:'2 July',  t:'15:59', cap:'The painted ceiling above it.' },
   { id:'img_5761', d:'2 July',  t:'15:59', cap:'Through to the next room. Free entry, like all the municipal museums here.' }
+  /* Example — uncomment and adjust once the files are uploaded:
+  ,{ id:'video_dijon_tour', d:'2 July', t:'16:05', cap:'A short walk-through of the museum galleries.', video:true }
+  */
 ];
 
 /* ---- build both galleries; lightbox indexes across the combined set ---- */
@@ -807,7 +827,7 @@ function build(list, mount, isCity){
     const fig = document.createElement('figure');
     fig.className = 'shot' + (s.gap ? ' shot--gap' : '');
     fig.innerHTML =
-      '<button type="button" class="shot__btn" data-i="' + i + '" aria-label="Enlarge photograph — ' + stamp + '">' +
+      '<button type="button" class="shot__btn' + (s.video ? ' shot__btn--video' : '') + '" data-i="' + i + '" aria-label="' + (s.video ? 'Play video — ' : 'Enlarge photograph — ') + stamp + '">' +
         '<img src="images/thumb/' + s.id + '.jpg" alt="' + s.cap.replace(/"/g,'&quot;') + '" loading="lazy" decoding="async">' +
         '<span class="shot__stamp">' + stamp + '</span>' +
       '</button>' +
@@ -822,14 +842,27 @@ build(CITY,  'cityGallery', true);
 /* ---- lightbox ---- */
 const lb = document.getElementById('lb'),
       lbImg = document.getElementById('lbImg'),
+      lbVideo = document.getElementById('lbVideo'),
       lbCap = document.getElementById('lbCap');
 let cur = 0, lastFocus = null;
 
 function show(i){
   cur = (i + ALL.length) % ALL.length;
   const s = ALL[cur];
-  lbImg.src = 'images/full/' + s.id + '.jpg';
-  lbImg.alt = s.cap;
+  if (s.video) {
+    lbImg.hidden = true;
+    lbImg.src = '';
+    lbVideo.hidden = false;
+    lbVideo.src = 'images/video/' + s.id + '.mp4';
+    lbVideo.play().catch(() => {});   // autoplay may be blocked; controls are always visible either way
+  } else {
+    lbVideo.hidden = true;
+    lbVideo.pause();
+    lbVideo.src = '';
+    lbImg.hidden = false;
+    lbImg.src = 'images/full/' + s.id + '.jpg';
+    lbImg.alt = s.cap;
+  }
   lbCap.textContent = (s.d ? s.d + '  ·  ' : '') + s.t + '  ·  ' + (cur + 1) + ' / ' + ALL.length;
 }
 function open(i){
@@ -842,6 +875,8 @@ function open(i){
 function close(){
   lb.hidden = true;
   lbImg.src = '';
+  lbVideo.pause();
+  lbVideo.src = '';
   document.body.style.overflow = '';
   if (lastFocus) lastFocus.focus();
 }
