@@ -486,6 +486,38 @@ h3.h{ font-family:var(--display); font-weight:600; font-size:clamp(1.1rem,1.6vw,
   </div>
 </section>
 
+<svg class="tiles tiles--thin" viewBox="0 0 480 24" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <rect width="480" height="24" fill="url(#lz-chaux)"/>
+</svg>
+
+<!-- ============================================================
+     PRÊT — the apartment, confirmed ready
+     ============================================================ -->
+<section class="band band--stone">
+  <div class="wrap">
+    <div class="plaque">
+      <span class="plaque__fr">Prêt à emménager</span>
+      <span class="plaque__en">Ready to move in</span>
+    </div>
+
+    <div class="prose">
+      <p class="lede">
+        A short walk-through filmed by our realtor on 10 September 2026, confirming the
+        apartment is clean, empty, and ready for our arrival.
+      </p>
+    </div>
+
+    <div class="clockbar">
+      <span>Filmed by <b>our realtor</b></span>
+      <span><b>10 September 2026</b></span>
+      <span>Click to play</span>
+    </div>
+
+    <div class="grid" id="readyGallery"><!-- built by script --></div>
+
+  </div>
+</section>
+
 <!-- ============================================================
      LE PLAN — map
      ============================================================ -->
@@ -790,8 +822,7 @@ const SHOTS = [
   { id:'img_7577', t:'15:27:40', cap:'Across the rooftops to the old barracks range — arcaded, dormered, now flats.' },
   { id:'img_5721', t:'15:30:33', cap:'The avenue from the terrace corner. The second camera.' },
   { id:'img_7579', t:'15:33:27', cap:'The kitchen, second look. Green walls, grey tile, a window onto the trees.' },
-  { id:'img_5722', t:'15:50:20', cap:'Under the terrace canopy, out over the rooftops one more time.' },
-   { id:'video_dijon_tour', d:'9 September', t:'16:05', cap:'A video walkthrough of the apartment on 9/10/26.', video:true }
+  { id:'img_5722', t:'15:50:20', cap:'Under the terrace canopy, out over the rooftops one more time.' }
 ];
 
 /* ============================================================
@@ -811,6 +842,13 @@ const CITY = [
   */
 ];
 
+/* ============================================================
+   PRÊT — confirmation that the apartment is ready
+   ============================================================ */
+const READY = [
+  { id:'video_apartment_ready', d:'10 September 2026', t:'', cap:'Walk-through filmed by our realtor, confirming the apartment is clean, empty, and ready for us.', video:true }
+];
+
 /* ---- build both galleries; lightbox indexes across the combined set ---- */
 const ALL = [];
 
@@ -824,7 +862,7 @@ function build(list, mount, isCity){
       note.textContent = s.gap;
       el.appendChild(note);
     }
-    const stamp = isCity ? s.d + ' · ' + s.t : s.t;
+    const stamp = isCity ? (s.t ? s.d + ' · ' + s.t : s.d) : s.t;
     const fig = document.createElement('figure');
     fig.className = 'shot' + (s.gap ? ' shot--gap' : '');
     fig.innerHTML =
@@ -839,6 +877,7 @@ function build(list, mount, isCity){
 
 build(SHOTS, 'gallery', false);
 build(CITY,  'cityGallery', true);
+build(READY, 'readyGallery', true);
 
 /* ---- lightbox ---- */
 const lb = document.getElementById('lb'),
